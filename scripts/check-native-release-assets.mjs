@@ -8,7 +8,6 @@ export const nativeReleaseAssetsReady = ({
   currentTag,
   desktopVersion,
   assetNames,
-  requireWindowsSignature = true,
 }) => {
   if (platform === "mobile") {
     const apkNames = assetNames.filter((name) =>
@@ -48,29 +47,6 @@ export const nativeReleaseAssetsReady = ({
         }
       }
     }
-    const windowsInstallerNames = assetNames.filter((name) =>
-      /^EdgeEver-(.+)-windows-x64\.exe$/.test(name)
-    );
-    if (windowsInstallerNames.length !== 1) return false;
-    const windowsVersion = /^EdgeEver-(.+)-windows-x64\.exe$/
-      .exec(windowsInstallerNames[0])?.[1];
-    if (!windowsVersion) return false;
-    versions.add(windowsVersion);
-    for (const name of [
-      "latest.yml",
-      "latest-windows.json",
-      "SHA256SUMS-windows.txt",
-    ]) {
-      if (assetNames.filter((assetName) => assetName === name).length !== 1) {
-        return false;
-      }
-    }
-    const signatureCount = assetNames.filter(
-      (name) => name === "latest-windows.json.sig",
-    ).length;
-    if (requireWindowsSignature ? signatureCount !== 1 : signatureCount > 1) {
-      return false;
-    }
     return (
       versions.size === 1 &&
       (!rebuild || versions.has(desktopVersion)) &&
@@ -82,16 +58,15 @@ export const nativeReleaseAssetsReady = ({
 };
 
 const run = () => {
-  const [platform, rebuildValue, currentTag, desktopVersion = "", signatureMode = "required"] =
+  const [platform, rebuildValue, currentTag, desktopVersion = ""] =
     process.argv.slice(2);
   if (
     !["mobile", "desktop"].includes(platform) ||
     !["true", "false"].includes(rebuildValue) ||
-    !currentTag ||
-    !["required", "allow-missing-windows-signature"].includes(signatureMode)
+    !currentTag
   ) {
     console.error(
-      "Usage: node scripts/check-native-release-assets.mjs <mobile|desktop> <true|false> <current-tag> [desktop-version] [required|allow-missing-windows-signature]",
+      "Usage: node scripts/check-native-release-assets.mjs <mobile|desktop> <true|false> <current-tag> [desktop-version]",
     );
     process.exit(1);
   }
@@ -105,7 +80,6 @@ const run = () => {
         currentTag,
         desktopVersion,
         assetNames,
-        requireWindowsSignature: signatureMode === "required",
       }),
     ),
   );

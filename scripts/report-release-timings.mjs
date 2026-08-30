@@ -43,32 +43,28 @@ function componentRow({ target, mode, candidate, duration, detail, url }) {
 
 function nativeRows(payload, platform, requestedMode) {
   if (platform === "desktop") {
-    const architectureJobs = [
-      { name: "macOS arm64", packageStep: "Package desktop installer", detail: "package + notarize" },
-      { name: "macOS x64", packageStep: "Package desktop installer", detail: "package + notarize" },
-      { name: "Windows x64 unsigned Preview", packageStep: "Package unsigned Windows installer", detail: "package" },
-    ]
-      .map((target) => ({ target, job: findJob(payload, target.name) }))
-      .filter(({ job }) => Boolean(job));
+    const architectureJobs = ["macOS arm64", "macOS x64"]
+      .map((name) => findJob(payload, name))
+      .filter(Boolean);
     if (architectureJobs.length > 0) {
-      return architectureJobs.map(({ target, job }) => {
-        const packageStep = findStep(job, target.packageStep);
+      return architectureJobs.map((job) => {
+        const packageStep = findStep(job, "Package desktop installer");
         return componentRow({
-          target: target.name === "Windows x64 unsigned Preview" ? "Windows x64 Preview" : target.name,
+          target: job.name,
           mode: "rebuild",
           candidate: job,
           duration: jobDurationMs(job),
-          detail: `${target.detail} ${formatDuration(stepDurationMs(packageStep))}`,
+          detail: `package + notarize ${formatDuration(stepDurationMs(packageStep))}`,
           url: job.html_url ?? payload.run.html_url,
         });
       });
     }
 
-    const reuseJob = findJob(payload, "Reuse desktop release assets");
+    const reuseJob = findJob(payload, "Reuse macOS release assets");
     if (reuseJob) {
       return [
         componentRow({
-          target: "macOS arm64 + x64 + Windows x64",
+          target: "macOS arm64 + x64",
           mode: "reuse",
           candidate: reuseJob,
           duration: jobDurationMs(reuseJob),
@@ -81,7 +77,7 @@ function nativeRows(payload, platform, requestedMode) {
     const planJob = findJob(payload, "Plan desktop release asset");
     return [
       componentRow({
-        target: "macOS arm64 + x64 + Windows x64",
+        target: "macOS arm64 + x64",
         mode: "already prepared",
         candidate: planJob ?? payload.run,
         duration: jobDurationMs(planJob) ?? runDurationMs(payload.run),
